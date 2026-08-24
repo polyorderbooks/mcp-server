@@ -91,6 +91,50 @@ was; only the ladder tells you what you could have traded at.
 
 ---
 
+## How this differs from other Polymarket MCP servers
+
+Several good ones exist — [kukapay/polymarket-predictions-mcp](https://github.com/kukapay/polymarket-predictions-mcp),
+[demwick/polymarket-agent-mcp](https://github.com/demwick/polymarket-agent-mcp),
+[PaulieB14/graph-polymarket-mcp](https://github.com/PaulieB14/graph-polymarket-mcp).
+They wrap Polymarket's own Gamma and CLOB APIs and do it well.
+
+| | Those | This one |
+| --- | --- | --- |
+| Live odds and current book | yes | no |
+| Placing trades | some | no |
+| Market metadata and resolution | yes | yes |
+| Price history | 1-minute, from Polymarket | 1-second |
+| **Historical order book depth** | **not available** | **yes** |
+
+The difference is structural rather than a matter of effort. Polymarket's `/book`
+endpoint returns the present state and nothing archives it, so no server built on
+that API can serve yesterday's ladders. This one reads an archive that was
+captured live.
+
+If you want to trade, or want live odds, use one of theirs — they cover that
+better. Use this when the question is about what the book looked like at a
+specific past moment.
+
+---
+
+## Troubleshooting
+
+**"POLYORDERBOOKS_API_KEY is not set"** — the server exits immediately if the key
+is missing. Set it in the `env` block of your MCP client config, not your shell:
+MCP servers do not inherit your shell environment.
+
+**Authentication failed** — keys start with `pob_`. Check for a trailing newline
+if you pasted from a terminal.
+
+**Responses truncated or slow** — an hour at 1-second resolution is 3,600 buckets
+per token, and a market has two. Narrow the window, or use `resolution: "1m"` and
+page with `next_cursor`.
+
+**Empty ladders** — expected near settlement. See the note above on one-sided
+books.
+
+---
+
 ## Open data
 
 897,192 snapshots across 805 resolved markets and three contract lengths are
