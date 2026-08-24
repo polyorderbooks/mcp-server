@@ -15,7 +15,7 @@ import * as z from 'zod/v4';
 
 import { PolyOrderbooksClient, describeError } from './client.js';
 
-const VERSION = '0.1.0';
+const VERSION = '0.2.0';
 
 const apiKey = process.env.POLYORDERBOOKS_API_KEY;
 if (!apiKey) {
@@ -62,7 +62,8 @@ export function createServer(): McpServer {
             description:
                 'Find Polymarket markets by keyword. Start here — the other tools need a market slug, and slugs are not guessable. ' +
                 'Coverage is Polymarket crypto markets: up/down contracts at 5m, 15m and 4h, price thresholds like "bitcoin-above-80k", and related event markets. ' +
-                'Resolved markets are excluded unless include_closed is true, which is usually what you want for historical analysis.',
+                'Resolved markets are excluded unless include_closed is true, which is usually what you want for historical analysis. ' +
+                'For a whole family of markets rather than one, search_series is more reliable than guessing slug patterns here.',
             inputSchema: z.object({
                 search: z
                     .string()
@@ -72,17 +73,56 @@ export function createServer(): McpServer {
                     .boolean()
                     .optional()
                     .describe('Include markets that have already resolved. Set true for historical work.'),
+                end_date_min: z.string().optional().describe('ISO-8601, markets ending at or after this'),
+                end_date_max: z.string().optional().describe('ISO-8601, markets ending at or before this'),
                 limit: z.number().int().min(1).max(100).optional().describe('Default 20')
             })
         },
-        async ({ search, include_closed, limit }) =>
+        async ({ search, include_closed, end_date_min, end_date_max, limit }) =>
             run(() =>
                 api.get('/v1/markets', {
                     search,
                     include_closed,
+                    end_date_min,
+                    end_date_max,
                     limit: limit ?? 20
                 })
             )
+    );
+
+    server.registerTool(
+        'search_series',
+        {
+            title: 'Search recurring market series',
+            description:
+                'A series is a recurring family of markets — "btc-up-or-down-5m" is every BTC 5-minute up/down contract ever created. ' +
+                'Use this when the question is about a kind of market rather than a specific one: it is more reliable than guessing at slug ' +
+                'patterns with search_markets. Take the series slug, then use search_events to find its individual rounds.',
+            inputSchema: z.object({
+                search: z.string().optional().describe('Substring, e.g. "btc-up-or-down" or "solana"'),
+                limit: z.number().int().min(1).max(100).optional().describe('Default 20')
+            })
+        },
+        async ({ search, limit }) => run(() => api.get('/v1/series', { search, limit: limit ?? 20 }))
+    );
+
+    server.registerTool(
+        'search_events',
+        {
+            title: 'Search events',
+            description:
+                'An event groups markets that resolve together — "what-price-will-solana-hit-august-17-23-2026" holds every price threshold ' +
+                'for that week, and "btc-updown-5m-1787685000" is one 5-minute round. Use this to find the set of related markets to compare, ' +
+                'then search_markets to get the markets themselves. Date filters are useful here: events carry an end_date.',
+            inputSchema: z.object({
+                search: z.string().optional().describe('Substring matched against slug and title'),
+                end_date_min: z.string().optional().describe('ISO-8601, events ending at or after this'),
+                end_date_max: z.string().optional().describe('ISO-8601, events ending at or before this'),
+                limit: z.number().int().min(1).max(100).optional().describe('Default 20')
+            })
+        },
+        async ({ search, end_date_min, end_date_max, limit }) =>
+            run(() => api.get('/v1/events', { search, end_date_min, end_date_max, limit: limit ?? 20 }))
     );
 
     server.registerTool(
@@ -106,9 +146,9 @@ export function createServer(): McpServer {
             description:
                 'Full L2 bid and ask ladders over time for a market — every price level and the size resting at each. ' +
                 'This is data Polymarket does not archive: its /book endpoint returns only the current state, so depth exists only where it was captured live.\n\n' +
-                'Two properties of the data matter when interpreting it. Binary markets go one-sided as they resolve — in the final minute of a 5-minute market ' +
-                '76% of snapshots have an empty bid or ask side, because nobody offers the losing outcome. And a small share of snapshots are crossed ' +
-                '(best bid at or above best ask), flagged rather than removed; these are momentary staleness, median 2 seconds.\n\n' +
+                'One thing to expect when reading the results: binary markets go one-sided as they resolve. In the final minute of a 5-minute market most ' +
+                'snapshots have an empty bid or ask side, because nobody offers the losing outcome. That is real market behaviour rather than missing data, ' +
+                'so guard before indexing the first level of a ladder.\n\n' +
                 'Responses are large. Keep the window narrow or the resolution coarse: a one-hour window at 1s is 3,600 buckets per token, and a market has two tokens.',
             inputSchema: z.object({
                 id_or_slug: z.string().describe('Market slug, e.g. btc-updown-5m-1787551200'),

@@ -43,12 +43,18 @@ shorter history window.
 
 | Tool | What it does |
 | --- | --- |
-| `search_markets` | Find markets by keyword. Start here — slugs are not guessable. |
+| `search_series` | Recurring families — `btc-up-or-down-5m` is every BTC 5-minute round. |
+| `search_events` | Groups of markets that resolve together. |
+| `search_markets` | Individual markets by keyword or date range. |
 | `get_market` | One market in full, including outcome tokens and the winner. |
 | `get_order_book_history` | L2 ladders over time. The thing Polymarket does not archive. |
 | `get_price_history` | Price series per outcome token. |
 | `get_market_metrics` | Spread, liquidity and volume as a time series. |
 | `get_usage` | Plan, rate limits and quota. |
+
+The catalogue is **series → events → markets**. Ask for a kind of market with
+`search_series`, a set that resolves together with `search_events`, and a
+specific one with `search_markets`.
 
 ---
 
@@ -58,11 +64,6 @@ shorter history window.
 market, **76% of snapshots have an empty bid or ask side** — nobody offers the
 losing outcome. This is real market behaviour, not missing data, and it breaks
 analysis that assumes two-sided books.
-
-**Some snapshots are crossed.** Best bid at or above best ask, which is not
-tradeable. They are flagged rather than removed so the rate stays measurable:
-around 3% on 5-minute markets, median duration 2 seconds, 98% clearing within a
-minute.
 
 **Contract length changes everything.** A 4-hour contract is one-sided 0.5% of
 the time; a 5-minute contract, 17%. Conclusions from one do not transfer to the
