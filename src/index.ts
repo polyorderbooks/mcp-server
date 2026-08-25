@@ -15,7 +15,7 @@ import * as z from 'zod/v4';
 
 import { PolyOrderbooksClient, describeError } from './client.js';
 
-const VERSION = '0.2.2';
+const VERSION = '0.2.3';
 
 const apiKey = process.env.POLYORDERBOOKS_API_KEY;
 if (!apiKey) {
@@ -190,7 +190,8 @@ export function createServer(): McpServer {
                 start_ts: isoTime,
                 end_ts: isoTime,
                 resolution: resolution.optional().describe('Defaults to 1m'),
-                limit: z.number().int().min(1).max(500).optional().describe('Default 100'),
+                // The API caps this at 200 and rejects more with a 400.
+                limit: z.number().int().min(1).max(200).optional().describe('Default 100, max 200'),
                 cursor: z.string().optional()
             })
         },
@@ -219,7 +220,8 @@ export function createServer(): McpServer {
                 start_ts: isoTime,
                 end_ts: isoTime,
                 resolution: resolution.optional().describe('Defaults to 1m'),
-                limit: z.number().int().min(1).max(500).optional().describe('Default 100'),
+                // The API caps this at 200 and rejects more with a 400.
+                limit: z.number().int().min(1).max(200).optional().describe('Default 100, max 200'),
                 cursor: z.string().optional()
             })
         },
