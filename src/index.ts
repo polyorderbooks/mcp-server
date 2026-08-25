@@ -15,7 +15,7 @@ import * as z from 'zod/v4';
 
 import { PolyOrderbooksClient, describeError } from './client.js';
 
-const VERSION = '0.2.0';
+const VERSION = '0.2.1';
 
 const apiKey = process.env.POLYORDERBOOKS_API_KEY;
 if (!apiKey) {
