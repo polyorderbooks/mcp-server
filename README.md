@@ -33,9 +33,36 @@ Nothing to install. Add it to your MCP client config and it runs via `npx`.
 
 **Cursor** — `.cursor/mcp.json`, same shape.
 
-Get a free key at [polyorderbooks.com/signup](https://polyorderbooks.com/signup).
-The free tier queries at 1-second resolution, the same as paid plans, over a
-shorter history window.
+Restart the client after editing the config; MCP servers are started at launch.
+
+---
+
+## Getting an API key
+
+1. Sign up at [polyorderbooks.com/signup](https://polyorderbooks.com/signup). No
+   card is required.
+2. Open the dashboard and create a key. It looks like `pob_` followed by a long
+   random string.
+3. Put it in the `env` block of your MCP client config, as above.
+
+The free **Starter** plan queries at **1-second resolution** — the same as the
+paid plans. What the paid plans add is a longer history window and a higher
+request allowance, not finer data. Starter is enough to answer a real question
+before you decide whether to pay for anything.
+
+Call the `get_usage` tool at any time to see the plan, limits and remaining
+allowance on the key you configured.
+
+## Environment variables
+
+| Variable | Required | Purpose |
+| --- | --- | --- |
+| `POLYORDERBOOKS_API_KEY` | yes | Your API key. The server exits at startup if this is missing, rather than failing later on the first tool call. |
+| `POLYORDERBOOKS_BASE_URL` | no | Overrides the API base URL. Defaults to `https://api.polyorderbooks.com`. Only needed for a self-hosted or staging deployment. |
+
+Set these in the MCP client config, **not** in your shell. A client launches the
+server as a subprocess and does not pass your interactive shell environment to
+it, so a key exported in `.zshrc` will not be visible to the server.
 
 ---
 
@@ -119,12 +146,14 @@ specific past moment.
 
 ## Troubleshooting
 
-**"POLYORDERBOOKS_API_KEY is not set"** — the server exits immediately if the key
-is missing. Set it in the `env` block of your MCP client config, not your shell:
-MCP servers do not inherit your shell environment.
+**"POLYORDERBOOKS_API_KEY is not set"** — the key is missing. It goes in the `env`
+block of the client config, not your shell. See
+[Environment variables](#environment-variables).
 
-**Authentication failed** — keys start with `pob_`. Check for a trailing newline
-if you pasted from a terminal.
+**Authentication failed** — the key reached the server but the API rejected it.
+Keys start with `pob_`; check for a trailing newline or a stray quote if you
+pasted from a terminal. If it looks right, call `get_usage` to confirm the key is
+active.
 
 **Responses truncated or slow** — an hour at 1-second resolution is 3,600 buckets
 per token, and a market has two. Narrow the window, or use `resolution: "1m"` and

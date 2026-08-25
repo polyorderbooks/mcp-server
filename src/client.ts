@@ -40,7 +40,7 @@ export class PolyOrderbooksClient {
             headers: {
                 Accept: 'application/json',
                 'X-API-Key': this.apiKey,
-                'User-Agent': 'polyorderbooks-mcp/0.2.1'
+                'User-Agent': 'polyorderbooks-mcp/0.2.2'
             }
         });
 
